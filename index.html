@@ -399,7 +399,6 @@ audio{width:100%;border-radius:10px;margin-bottom:12px;accent-color:var(--accent
   </div>
 </div>
 
-<audio id="pvAudio" style="display:none"></audio>
 
 <script>
 const API='https://test2speech-ahsanlabs.ahsanlabs.workers.dev/';
@@ -469,7 +468,6 @@ let pvPlaying=null,pvCache={},pvFilter={p1:'all',p2:'all'};
 window.addEventListener('DOMContentLoaded',()=>{
   renderGrid('p1');renderGrid('p2');
   updateBar('p1');updateBar('p2');
-  document.getElementById('pvAudio').addEventListener('ended',stopPreview);
 });
 
 function togglePicker(pid){document.getElementById(pid).classList.toggle('show');}
@@ -518,7 +516,6 @@ function updateBar(pid){
 }
 
 async function previewVoice(v,pid){
-  const audio=document.getElementById('pvAudio');
   if(pvPlaying===v){stopPreview();return;}
   stopPreview();
   pvPlaying=v;
@@ -529,15 +526,24 @@ async function previewVoice(v,pid){
   try{
     if(!pvCache[v]){
       const info=getInfo(v);
-      const txt='Hi, I am '+info.l+'. I will be your voice for this project.';
-      const enc=encodeURIComponent(txt.replace(/\s+/g,'_'));
-      const res=await fetch(API+'?text='+enc+'&voice='+v);
+      const txt='Hi_I_am_'+info.l+'._I_will_be_your_voice.';
+      const res=await fetch(API+'?text='+txt+'&voice='+v);
       if(!res.ok)throw new Error('HTTP '+res.status);
-      const blob=await res.blob();const mp3=new Blob([blob],{type:"audio/mpeg"});pvCache[v]=URL.createObjectURL(mp3);
+      const blob=await res.blob();
+      pvCache[v]=URL.createObjectURL(blob);
     }
-    audio.src=pvCache[v];
-    await audio.play();
-    if(btn){btn.className='btn-preview playing';btn.textContent='⏹ Stop';}
+    const au=new Audio(pvCache[v]);
+    au.onended=()=>stopPreview();
+    au.onerror=(e)=>{stopPreview();};
+    window._pvAu=au;
+    au.play().then(()=>{
+      if(btn){btn.className='btn-preview playing';btn.textContent='⏹ Stop';}
+    }).catch(e=>{
+      pvPlaying=null;
+      if(card)card.classList.remove('is-playing');
+      if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
+      alert('Preview ব্যর্থ: '+e.message);
+    });
   }catch(e){
     pvPlaying=null;
     if(card)card.classList.remove('is-playing');
@@ -548,8 +554,7 @@ async function previewVoice(v,pid){
 
 function stopPreview(){
   if(!pvPlaying)return;
-  const a=document.getElementById('pvAudio');
-  a.pause();a.src='';
+  if(window._pvAu){window._pvAu.pause();window._pvAu.src='';window._pvAu=null;}
   document.querySelectorAll('.vcard.is-playing').forEach(c=>c.classList.remove('is-playing'));
   document.querySelectorAll('.btn-preview.playing,.btn-preview.loading').forEach(b=>{b.className='btn-preview idle';b.textContent='▶ Preview';});
   pvPlaying=null;
