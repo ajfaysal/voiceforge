@@ -516,40 +516,48 @@ function updateBar(pid){
 }
 
 async function previewVoice(v,pid){
-  if(pvPlaying===v){stopPreview();return;}
-  stopPreview();
-  pvPlaying=v;
-  const card=document.getElementById('vc_'+pid+'_'+v);
   const btn=document.getElementById('pvb_'+pid+'_'+v);
-  if(card)card.classList.add('is-playing');
+  const card=document.getElementById('vc_'+pid+'_'+v);
   if(btn){btn.className='btn-preview loading';btn.textContent='◌ Loading...';}
   try{
-    if(!pvCache[v]){
-      const info=getInfo(v);
-      const txt='Hi_I_am_'+info.l+'._I_will_be_your_voice.';
-      const res=await fetch(API+'?text='+txt+'&voice='+v);
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const blob=await res.blob();
-      pvCache[v]=URL.createObjectURL(blob);
-    }
-    const au=new Audio(pvCache[v]);
-    au.onended=()=>stopPreview();
-    au.onerror=(e)=>{stopPreview();};
-    window._pvAu=au;
-    au.play().then(()=>{
-      if(btn){btn.className='btn-preview playing';btn.textContent='⏹ Stop';}
-    }).catch(e=>{
-      pvPlaying=null;
-      if(card)card.classList.remove('is-playing');
-      if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
-      alert('Preview ব্যর্থ: '+e.message);
-    });
-  }catch(e){
-    pvPlaying=null;
-    if(card)card.classList.remove('is-playing');
+    const info=getInfo(v);
+    const txt='Hi_I_am_'+info.l+'._I_will_be_your_voice.';
+    const url=API+'?text='+txt+'&voice='+v;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    const burl=URL.createObjectURL(blob);
+    showPlayer(burl,info.l,v,pid);
     if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
-    alert('Preview ব্যর্থ: '+e.message);
+  }catch(e){
+    if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
+    alert('লোড ব্যর্থ: '+e.message);
   }
+}
+
+function showPlayer(url,name,v,pid){
+  let el=document.getElementById('floatPlayer');
+  if(!el){
+    el=document.createElement('div');
+    el.id='floatPlayer';
+    el.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1d35;border-top:2px solid #6c63ff;padding:16px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 -4px 24px rgba(108,99,255,.3)';
+    document.body.appendChild(el);
+  }
+  el.innerHTML=`
+    <div style="flex:1">
+      <div style="font-size:11px;color:#6c63ff;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">🎙 Preview</div>
+      <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:6px">${name}</div>
+      <audio controls autoplay src="${url}" style="width:100%;border-radius:8px;accent-color:#6c63ff"></audio>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="selectVoice('${v}','${pid}');closePlayer()" style="padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#6c63ff,#a78bfa);color:#fff;font-size:13px;font-weight:800;cursor:pointer">✓ Select</button>
+      <button onclick="closePlayer()" style="padding:10px 16px;border-radius:10px;border:1.5px solid #6c63ff;background:transparent;color:#6c63ff;font-size:13px;font-weight:800;cursor:pointer">✕ Close</button>
+    </div>`;
+}
+
+function closePlayer(){
+  const el=document.getElementById('floatPlayer');
+  if(el)el.remove();
 }
 
 function stopPreview(){
