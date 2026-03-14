@@ -363,4 +363,379 @@ audio{width:100%;border-radius:10px;margin-bottom:12px;accent-color:var(--accent
     </div>
 
     <div class="card">
-      <div cl
+      <div class="snum">02</div>
+      <div class="ctitle">স্ক্রিপ্ট ফাইল আপলোড করুন</div>
+      <div class="csub">TXT বা MD ফাইল drag করুন বা বেছে নিন</div>
+      <div class="uzone" id="uz" onclick="document.getElementById('sf').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+        <input type="file" id="sf" accept=".txt,.js,.md,.srt" onchange="readFile(this.files[0])">
+        <span class="uzone-icon">📂</span>
+        <div class="uzone-title">ফাইল বেছে নিন বা drag করুন</div>
+        <div class="uzone-sub">.txt &nbsp;·&nbsp; .md &nbsp;·&nbsp; .srt &nbsp;·&nbsp; .js</div>
+      </div>
+      <div class="fprev" id="fp"><span class="ficon">📄</span><div class="fname" id="fn">—</div><span class="fsize" id="fz">—</span><button class="fclr" onclick="clearFile()">✕ Remove</button></div>
+      <div class="spreview" id="sp"></div>
+      <div class="sstats" id="ss">
+        <div class="spill">📝 <strong id="sc">0</strong> chars</div>
+        <div class="spill">⏱ ~<strong id="sm">0</strong> min</div>
+        <div class="spill">🔢 <strong id="sk">0</strong> parts</div>
+      </div>
+    </div>
+
+    <div class="prog-card" id="pc2">
+      <div class="prog-head"><span class="prog-label">রূপান্তর হচ্ছে...</span><span class="prog-val" id="pv2">0/0</span></div>
+      <div class="pbar"><div class="pfill" id="pf2"></div></div>
+      <div class="pstatus" id="ps2"></div>
+    </div>
+    <button class="btnmain" id="gb2" onclick="genScript()" disabled>🎙 স্ক্রিপ্ট ভয়েসে রূপান্তর করুন</button>
+    <div class="ebox" id="eb2"><span>⚠️</span><span id="em2"></span></div>
+    <div class="plist" id="pl"></div>
+    <div class="rbox" id="rb2">
+      <div class="rtop"><div class="ric">✅</div><div><div class="rtitle">স্ক্রিপ্ট ভয়েস সম্পন্ন!</div><div class="rmeta" id="rm2"></div></div></div>
+      <audio id="au2" controls></audio>
+      <a id="dl2" class="btndl" download>⬇️ সম্পূর্ণ অডিও ডাউনলোড করুন</a>
+    </div>
+  </div>
+</div>
+
+<audio id="pvAudio" style="display:none"></audio>
+
+<script>
+const API='https://test2speech-ahsanlabs.ahsanlabs.workers.dev/';
+const CHUNK=450;
+
+const VOICES=[
+  {v:'liam',l:'Liam',t:'Deep & Clear',g:'male',i:'🎙'},
+  {v:'adam',l:'Adam',t:'Warm',g:'male',i:'🎙'},
+  {v:'echo',l:'Echo',t:'Smooth',g:'male',i:'🎙'},
+  {v:'onyx',l:'Onyx',t:'Bold',g:'male',i:'🎙'},
+  {v:'eric',l:'Eric',t:'Natural',g:'male',i:'🎙'},
+  {v:'fable',l:'Fable',t:'Storyteller',g:'male',i:'🎙'},
+  {v:'daniel',l:'Daniel',t:'Professional',g:'male',i:'🎙'},
+  {v:'michael',l:'Michael',t:'Friendly',g:'male',i:'🎙'},
+  {v:'george',l:'George',t:'Authoritative',g:'male',i:'🎙'},
+  {v:'lewis',l:'Lewis',t:'Casual',g:'male',i:'🎙'},
+  {v:'puck',l:'Puck',t:'Energetic',g:'male',i:'🎙'},
+  {v:'river',l:'River',t:'Calm',g:'male',i:'🎙'},
+  {v:'alloy',l:'Alloy',t:'Neutral',g:'male',i:'🎙'},
+  {v:'alex',l:'Alex',t:'Clear',g:'male',i:'🎙'},
+  {v:'fenrir',l:'Fenrir',t:'Nordic',g:'male',i:'🎙'},
+  {v:'noel',l:'Noel',t:'Crisp',g:'male',i:'🎙'},
+  {v:'santa',l:'Santa',t:'Jovial',g:'male',i:'🎙'},
+  {v:'arjun',l:'Arjun',t:'South Asian',g:'male',i:'🎙'},
+  {v:'kabir',l:'Kabir',t:'South Asian',g:'male',i:'🎙'},
+  {v:'antonio',l:'Antonio',t:'Spanish',g:'male',i:'🎙'},
+  {v:'santiago',l:'Santiago',t:'Spanish',g:'male',i:'🎙'},
+  {v:'kumo',l:'Kumo',t:'Japanese',g:'male',i:'🎙'},
+  {v:'nova',l:'Nova',t:'Clear & Bright',g:'female',i:'🎤'},
+  {v:'bella',l:'Bella',t:'Warm',g:'female',i:'🎤'},
+  {v:'emma',l:'Emma',t:'Natural',g:'female',i:'🎤'},
+  {v:'alice',l:'Alice',t:'Soft',g:'female',i:'🎤'},
+  {v:'jessica',l:'Jessica',t:'Lively',g:'female',i:'🎤'},
+  {v:'nicole',l:'Nicole',t:'Smooth',g:'female',i:'🎤'},
+  {v:'sarah',l:'Sarah',t:'Friendly',g:'female',i:'🎤'},
+  {v:'lily',l:'Lily',t:'Gentle',g:'female',i:'🎤'},
+  {v:'sky',l:'Sky',t:'Airy',g:'female',i:'🎤'},
+  {v:'heart',l:'Heart',t:'Caring',g:'female',i:'🎤'},
+  {v:'isabella',l:'Isabella',t:'Elegant',g:'female',i:'🎤'},
+  {v:'dora',l:'Dora',t:'Expressive',g:'female',i:'🎤'},
+  {v:'doras',l:'Doras',t:'Soft Alt',g:'female',i:'🎤'},
+  {v:'nicola',l:'Nicola',t:'British',g:'female',i:'🎤'},
+  {v:'siwis',l:'Siwis',t:'European',g:'female',i:'🎤'},
+  {v:'sara',l:'Sara',t:'Nordic',g:'female',i:'🎤'},
+  {v:'riya',l:'Riya',t:'South Asian',g:'female',i:'🎤'},
+  {v:'anaya',l:'Anaya',t:'South Asian',g:'female',i:'🎤'},
+  {v:'aiko',l:'Aiko',t:'Japanese',g:'female',i:'🎤'},
+  {v:'aoede',l:'Aoede',t:'Greek',g:'female',i:'🎤'},
+  {v:'kore',l:'Kore',t:'Korean',g:'female',i:'🎤'},
+  {v:'nezumi',l:'Nezumi',t:'Japanese',g:'female',i:'🎤'},
+  {v:'gongitsune',l:'Gongitsune',t:'Japanese',g:'female',i:'🎤'},
+  {v:'tebukuro',l:'Tebukuro',t:'Japanese',g:'female',i:'🎤'},
+  {v:'xiaobei',l:'Xiaobei',t:'Chinese',g:'female',i:'🎤'},
+  {v:'xiaoni',l:'Xiaoni',t:'Chinese',g:'female',i:'🎤'},
+  {v:'xiaoxiao',l:'Xiaoxiao',t:'Chinese',g:'female',i:'🎤'},
+  {v:'xiaoyi',l:'Xiaoyi',t:'Chinese',g:'female',i:'🎤'},
+  {v:'yunjian',l:'Yunjian',t:'Chinese',g:'female',i:'🎤'},
+  {v:'yunxi',l:'Yunxi',t:'Chinese',g:'female',i:'🎤'},
+  {v:'yunxia',l:'Yunxia',t:'Chinese',g:'female',i:'🎤'},
+  {v:'yunyang',l:'Yunyang',t:'Chinese',g:'female',i:'🎤'},
+];
+
+const getInfo=v=>VOICES.find(x=>x.v===v)||{v,l:v,t:'',g:'male',i:'🎙'};
+let selV={p1:'liam',p2:'liam'};
+let pvPlaying=null,pvCache={},pvFilter={p1:'all',p2:'all'};
+
+window.addEventListener('DOMContentLoaded',()=>{
+  renderGrid('p1');renderGrid('p2');
+  updateBar('p1');updateBar('p2');
+  document.getElementById('pvAudio').addEventListener('ended',stopPreview);
+});
+
+function togglePicker(pid){document.getElementById(pid).classList.toggle('show');}
+
+function filterVoices(pid,f,btn){
+  pvFilter[pid]=f;
+  btn.closest('.vfilter').querySelectorAll('.vf-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderGrid(pid);
+}
+
+function renderGrid(pid){
+  const f=pvFilter[pid]||'all';
+  const list=VOICES.filter(x=>f==='all'||x.g===f);
+  const n=pid.slice(-1);
+  document.getElementById('vg'+n).innerHTML=list.map(info=>{
+    const isSel=selV[pid]===info.v;
+    const isPlay=pvPlaying===info.v;
+    return `<div class="vcard${isSel?' selected':''}${isPlay?' is-playing':''}" id="vc_${pid}_${info.v}">
+      <div class="vcard-check">✓</div>
+      <span class="vcard-icon">${info.i}</span>
+      <div class="vcard-name">${info.l}</div>
+      <div class="vcard-tag">${info.t}</div>
+      <button class="btn-preview${isPlay?' playing':' idle'}" id="pvb_${pid}_${info.v}"
+        onclick="previewVoice('${info.v}','${pid}')">
+        ${isPlay?'⏹ Stop':'▶ Preview'}
+      </button>
+      <button class="btn-select" onclick="selectVoice('${info.v}','${pid}')">
+        ${isSel?'✓ Selected':'Select'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function selectVoice(v,pid){
+  selV[pid]=v;renderGrid(pid);updateBar(pid);
+  document.getElementById(pid).classList.remove('show');
+}
+
+function updateBar(pid){
+  const info=getInfo(selV[pid]);
+  const n=pid.slice(-1);
+  document.getElementById('si'+n).textContent=info.i;
+  document.getElementById('sn'+n).textContent=info.l;
+  document.getElementById('st'+n).textContent=info.t+' · '+(info.g==='male'?'Male ♂':'Female ♀');
+}
+
+async function previewVoice(v,pid){
+  const audio=document.getElementById('pvAudio');
+  if(pvPlaying===v){stopPreview();return;}
+  stopPreview();
+  pvPlaying=v;
+  const card=document.getElementById('vc_'+pid+'_'+v);
+  const btn=document.getElementById('pvb_'+pid+'_'+v);
+  if(card)card.classList.add('is-playing');
+  if(btn){btn.className='btn-preview loading';btn.textContent='◌ Loading...';}
+  try{
+    if(!pvCache[v]){
+      const info=getInfo(v);
+      const txt='Hi, I am '+info.l+'. I will be your voice for this project.';
+      const enc=encodeURIComponent(txt.replace(/\s+/g,'_'));
+      const res=await fetch(API+'?text='+enc+'&voice='+v);
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const blob=await res.blob();const mp3=new Blob([blob],{type:"audio/mpeg"});pvCache[v]=URL.createObjectURL(mp3);
+    }
+    audio.src=pvCache[v];
+    await audio.play();
+    if(btn){btn.className='btn-preview playing';btn.textContent='⏹ Stop';}
+  }catch(e){
+    pvPlaying=null;
+    if(card)card.classList.remove('is-playing');
+    if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
+    alert('Preview ব্যর্থ: '+e.message);
+  }
+}
+
+function stopPreview(){
+  if(!pvPlaying)return;
+  const a=document.getElementById('pvAudio');
+  a.pause();a.src='';
+  document.querySelectorAll('.vcard.is-playing').forEach(c=>c.classList.remove('is-playing'));
+  document.querySelectorAll('.btn-preview.playing,.btn-preview.loading').forEach(b=>{b.className='btn-preview idle';b.textContent='▶ Preview';});
+  pvPlaying=null;
+}
+
+function switchTab(t){
+  document.getElementById('page-text').style.display=t==='text'?'block':'none';
+  document.getElementById('page-script').style.display=t==='script'?'block':'none';
+  document.getElementById('tab1').classList.toggle('on',t==='text');
+  document.getElementById('tab2').classList.toggle('on',t==='script');
+}
+
+function onT1(){
+  const v=document.getElementById('t1').value;
+  const c=v.length,m=Math.round(c/900);
+  const el=document.getElementById('ci1');
+  el.textContent=c.toLocaleString()+' characters · ~'+m+' min';
+  el.className='cinfo'+(c>8000?' warn':'');
+  document.getElementById('gb1').disabled=c<5;
+  document.getElementById('rb1').classList.remove('show');
+  document.getElementById('eb1').classList.remove('show');
+}
+
+async function doPaste(id,cb){
+  try{const t=await navigator.clipboard.readText();document.getElementById(id).value=t;cb();}
+  catch{alert('Clipboard অ্যাক্সেস নেই — manually paste করুন।');}
+}
+
+function splitChunks(text,size){
+  const chunks=[];let rem=text.trim();
+  while(rem.length>0){
+    if(rem.length<=size){chunks.push(rem);break;}
+    let cut=size;
+    const sl=rem.substring(0,size);
+    const last=Math.max(sl.lastIndexOf('. '),sl.lastIndexOf('! '),sl.lastIndexOf('? '),sl.lastIndexOf('\n'));
+    if(last>size*0.4)cut=last+1;
+    chunks.push(rem.substring(0,cut).trim());
+    rem=rem.substring(cut).trim();
+  }
+  return chunks.filter(c=>c.length>0);
+}
+
+async function fetchChunk(text,voice){
+  const enc=encodeURIComponent(text.replace(/\s+/g,'_'));
+  const res=await fetch(API+'?text='+enc+'&voice='+voice);
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const b=await res.blob();return new Blob([b],{type:"audio/mpeg"});
+}
+
+async function mergeBlobs(blobs){
+  if(blobs.length===1)return blobs[0];
+  const arrs=await Promise.all(blobs.map(b=>b.arrayBuffer()));
+  const total=arrs.reduce((s,a)=>s+a.byteLength,0);
+  const out=new Uint8Array(total);let off=0;
+  for(const a of arrs){out.set(new Uint8Array(a),off);off+=a.byteLength;}
+  return new Blob([out],{type:'audio/mpeg'});
+}
+
+async function genText(){
+  const text=document.getElementById('t1').value.trim();
+  const voice=selV['p1'];
+  if(!text)return;
+  stopPreview();
+  const chunks=splitChunks(text,CHUNK);
+  const btn=document.getElementById('gb1');
+  const pc=document.getElementById('pc1');
+  btn.disabled=true;btn.innerHTML='<span class="spin">◌</span> ভয়েস তৈরি হচ্ছে...';
+  document.getElementById('rb1').classList.remove('show');
+  document.getElementById('eb1').classList.remove('show');
+  if(chunks.length>1){
+    pc.style.display='block';
+    document.getElementById('pf1').style.width='0%';
+    document.getElementById('pv1').textContent='0/'+chunks.length;
+    document.getElementById('ps1').textContent='শুরু হচ্ছে...';
+  }
+  try{
+    const blobs=[];
+    for(let i=0;i<chunks.length;i++){
+      if(chunks.length>1){
+        document.getElementById('ps1').textContent='Part '+(i+1)+' তৈরি হচ্ছে...';
+        document.getElementById('pv1').textContent=i+'/'+chunks.length;
+        document.getElementById('pf1').style.width=(i/chunks.length*100)+'%';
+      }
+      blobs.push(await fetchChunk(chunks[i],voice));
+    }
+    const final=await mergeBlobs(blobs);
+    const url=URL.createObjectURL(final);
+    const info=getInfo(voice);
+    document.getElementById('au1').src=url;
+    document.getElementById('dl1').href=url;
+    document.getElementById('dl1').download='voiceforge_'+voice+'.mp3';
+    document.getElementById('rm1').textContent='ভয়েস: '+info.l+' · '+chunks.length+' part · ~'+Math.round(text.length/900)+' min';
+    document.getElementById('rb1').classList.add('show');
+    if(chunks.length>1){document.getElementById('pf1').style.width='100%';document.getElementById('pv1').textContent=chunks.length+'/'+chunks.length;document.getElementById('ps1').textContent='✅ সম্পন্ন!';}
+  }catch(e){
+    document.getElementById('em1').textContent='সমস্যা হয়েছে: '+e.message+' — আবার চেষ্টা করুন।';
+    document.getElementById('eb1').classList.add('show');
+    pc.style.display='none';
+  }finally{btn.disabled=false;btn.innerHTML='🎙 ভয়েস তৈরি করুন';}
+}
+
+let scriptText='';
+function onDrop(e){e.preventDefault();document.getElementById('uz').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
+function readFile(file){
+  if(!file)return;
+  document.getElementById('fn').textContent=file.name;
+  document.getElementById('fz').textContent=(file.size/1024/1024).toFixed(2)+' MB';
+  document.getElementById('fp').classList.add('show');
+  const r=new FileReader();
+  r.onload=e=>{
+    let raw=e.target.result;
+    raw=raw.replace(/^window\.\w+\s*=\s*/,'').replace(/;?\s*$/,'');
+    try{const j=JSON.parse(raw);raw=extractJSON(j);}catch{}
+    scriptText=raw.trim();
+    document.getElementById('sp').textContent=scriptText.substring(0,500)+(scriptText.length>500?'\n...':'');
+    document.getElementById('sp').classList.add('show');
+    document.getElementById('sc').textContent=scriptText.length.toLocaleString();
+    document.getElementById('sm').textContent=Math.round(scriptText.length/900);
+    document.getElementById('sk').textContent=splitChunks(scriptText,CHUNK).length;
+    document.getElementById('ss').classList.add('show');
+    document.getElementById('gb2').disabled=scriptText.length<5;
+  };
+  r.readAsText(file);
+}
+function extractJSON(d){
+  if(!Array.isArray(d))return JSON.stringify(d,null,2);
+  return d.map(x=>{if(x.tweet?.full_text)return x.tweet.full_text;if(x.like?.fullText)return x.like.fullText;if(typeof x==='string')return x;return '';}).filter(Boolean).join('\n\n');
+}
+function clearFile(){
+  scriptText='';document.getElementById('sf').value='';
+  ['fp','sp','ss'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  document.getElementById('pl').classList.remove('show');
+  document.getElementById('rb2').classList.remove('show');
+  document.getElementById('eb2').classList.remove('show');
+  document.getElementById('pc2').style.display='none';
+  document.getElementById('gb2').disabled=true;
+}
+
+async function genScript(){
+  if(!scriptText)return;
+  const voice=selV['p2'];
+  const chunks=splitChunks(scriptText,CHUNK);
+  const btn=document.getElementById('gb2');
+  const pc=document.getElementById('pc2');
+  const pl=document.getElementById('pl');
+  stopPreview();
+  btn.disabled=true;btn.innerHTML='<span class="spin">◌</span> রূপান্তর হচ্ছে...';
+  pc.style.display='block';
+  document.getElementById('pf2').style.width='0%';
+  document.getElementById('pv2').textContent='0/'+chunks.length;
+  document.getElementById('eb2').classList.remove('show');
+  document.getElementById('rb2').classList.remove('show');
+  pl.innerHTML=chunks.map((_,i)=>`<div class="prow" id="pr${i}"><div class="pnum">${i+1}</div><div class="pinfo"><div class="plabel">Part ${i+1}</div><div class="pchars">${chunks[i].length} chars</div></div><div class="pst loading" id="pt${i}"><span class="spin">◌</span> অপেক্ষা</div><a id="pd${i}" class="pdl" download="part_${i+1}.mp3">↓ Part ${i+1}</a></div>`).join('');
+  pl.classList.add('show');
+  try{
+    const blobs=[];
+    for(let i=0;i<chunks.length;i++){
+      document.getElementById('ps2').textContent='Part '+(i+1)+'/'+chunks.length+' তৈরি হচ্ছে...';
+      document.getElementById('pv2').textContent=i+'/'+chunks.length;
+      document.getElementById('pf2').style.width=(i/chunks.length*100)+'%';
+      document.getElementById('pt'+i).innerHTML='<span class="spin">◌</span> তৈরি হচ্ছে...';
+      try{
+        const blob=await fetchChunk(chunks[i],voice);blobs.push(blob);
+        const url=URL.createObjectURL(blob);
+        const dl=document.getElementById('pd'+i);dl.href=url;dl.download='part_'+(i+1)+'_'+voice+'.mp3';dl.classList.add('show');
+        document.getElementById('pt'+i).innerHTML='✅ সম্পন্ন';document.getElementById('pt'+i).className='pst done';
+      }catch{document.getElementById('pt'+i).innerHTML='❌ ব্যর্থ';document.getElementById('pt'+i).className='pst error';}
+    }
+    const good=blobs.filter(b=>b.size>0);
+    if(!good.length)throw new Error('কোনো part সফল হয়নি');
+    const final=await mergeBlobs(good);
+    const url=URL.createObjectURL(final);
+    const info=getInfo(voice);
+    document.getElementById('au2').src=url;
+    document.getElementById('dl2').href=url;
+    document.getElementById('dl2').download='voiceforge_script_'+voice+'.mp3';
+    document.getElementById('rm2').textContent='ভয়েস: '+info.l+' · '+good.length+'/'+chunks.length+' parts · ~'+Math.round(scriptText.length/900)+' min';
+    document.getElementById('rb2').classList.add('show');
+    document.getElementById('pf2').style.width='100%';
+    document.getElementById('pv2').textContent=chunks.length+'/'+chunks.length;
+    document.getElementById('ps2').textContent='✅ সম্পন্ন! '+good.length+'টি part merge হয়েছে।';
+  }catch(e){
+    document.getElementById('em2').textContent='সমস্যা: '+e.message;
+    document.getElementById('eb2').classList.add('show');
+  }finally{btn.disabled=false;btn.innerHTML='🎙 স্ক্রিপ্ট ভয়েসে রূপান্তর করুন';}
+}
+</script>
+</body>
+</html>
