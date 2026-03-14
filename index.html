@@ -1,301 +1,366 @@
-  
-  
-
-
-/        '🎤'},
-  {v:'sara',l:'Sara',t:'Nordic',g:'female',i:'🎤'},
-  {v:'riya',l:'Riya',t:'South Asian',g:'female',i:'🎤'},
-  {v:'anaya',l:'Anaya',t:'South Asian',g:'female',i:'🎤'},
-  {v:'aiko',l:'Aiko',t:'Japanese',g:'female',i:'🎤'},
-  {v:'aoede',l:'Aoede',t:'Greek',g:'female',i:'🎤'},
-  {v:'kore',l:'Kore',t:'Korean',g:'female',i:'🎤'},
-  {v:'nezumi',l:'Nezumi',t:'Japanese',g:'female',i:'🎤'},
-  {v:'gongitsune',l:'Gongitsune',t:'Japanese',g:'female',i:'🎤'},
-  {v:'tebukuro',l:'Tebukuro',t:'Japanese',g:'female',i:'🎤'},
-  {v:'xiaobei',l:'Xiaobei',t:'Chinese',g:'female',i:'🎤'},
-  {v:'xiaoni',l:'Xiaoni',t:'Chinese',g:'female',i:'🎤'},
-  {v:'xiaoxiao',l:'Xiaoxiao',t:'Chinese',g:'female',i:'🎤'},
-  {v:'xiaoyi',l:'Xiaoyi',t:'Chinese',g:'female',i:'🎤'},
-  {v:'yunjian',l:'Yunjian',t:'Chinese',g:'female',i:'🎤'},
-  {v:'yunxi',l:'Yunxi',t:'Chinese',g:'female',i:'🎤'},
-  {v:'yunxia',l:'Yunxia',t:'Chinese',g:'female',i:'🎤'},
-  {v:'yunyang',l:'Yunyang',t:'Chinese',g:'female',i:'🎤'},
-];
-
-const getInfo=v=>VOICES.find(x=>x.v===v)||{v,l:v,t:'',g:'male',i:'🎙'};
-let selV={p1:'liam',p2:'liam'};
-let pvPlaying=null,pvCache={},pvFilter={p1:'all',p2:'all'};
-
-window.addEventListener('DOMContentLoaded',()=>{
-  renderGrid('p1');renderGrid('p2');
-  updateBar('p1');updateBar('p2');
-  document.getElementById('pvAudio').addEventListener('ended',stopPreview);
-});
-
-function togglePicker(pid){document.getElementById(pid).classList.toggle('show');}
-
-function filterVoices(pid,f,btn){
-  pvFilter[pid]=f;
-  btn.closest('.vfilter').querySelectorAll('.vf-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderGrid(pid);
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>VoiceForge – Text to Speech Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0e1a;
+  --panel:#131629;
+  --panel2:#1a1d35;
+  --border:#252848;
+  --border2:#2e3260;
+  --text:#f0f0ff;
+  --text2:#8b8db8;
+  --muted:#555880;
+  --accent:#6c63ff;
+  --accent2:#ff6b9d;
+  --green:#00d4aa;
+  --green-l:#001f1a;
+  --green-b:#00d4aa44;
+  --red:#ff4d6d;
+  --red-l:#1f0010;
+  --orange:#ffb347;
+  --gold:#ffd700;
+  --r:18px;
+  --sh:0 4px 24px rgba(0,0,0,.4);
 }
+html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;font-size:16px}
 
-function renderGrid(pid){
-  const f=pvFilter[pid]||'all';
-  const list=VOICES.filter(x=>f==='all'||x.g===f);
-  const n=pid.slice(-1);
-  document.getElementById('vg'+n).innerHTML=list.map(info=>{
-    const isSel=selV[pid]===info.v;
-    const isPlay=pvPlaying===info.v;
-    return `<div class="vcard${isSel?' selected':''}${isPlay?' is-playing':''}" id="vc_${pid}_${info.v}">
-      <div class="vcard-check">✓</div>
-      <span class="vcard-icon">${info.i}</span>
-      <div class="vcard-name">${info.l}</div>
-      <div class="vcard-tag">${info.t}</div>
-      <button class="btn-preview${isPlay?' playing':' idle'}" id="pvb_${pid}_${info.v}"
-        onclick="previewVoice('${info.v}','${pid}')">
-        ${isPlay?'⏹ Stop':'▶ Preview'}
-      </button>
-      <button class="btn-select" onclick="selectVoice('${info.v}','${pid}')">
-        ${isSel?'✓ Selected':'Select'}
-      </button>
-    </div>`;
-  }).join('');
-}
+/* BG GLOW */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 40% at 10% 0%,#6c63ff18 0%,transparent 60%),
+             radial-gradient(ellipse 50% 30% at 90% 100%,#ff6b9d12 0%,transparent 60%)}
 
-function selectVoice(v,pid){
-  selV[pid]=v;renderGrid(pid);updateBar(pid);
-  document.getElementById(pid).classList.remove('show');
-}
+/* TOPBAR */
+.topbar{background:#0c0e1aee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;backdrop-filter:blur(12px)}
+.tb{max-width:700px;margin:0 auto;padding:0 18px;height:64px;display:flex;align-items:center;gap:14px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;border-radius:13px;
+  background:linear-gradient(135deg,var(--accent),#a78bfa);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 0 20px #6c63ff55}
+.logo-name{font-size:20px;font-weight:900;letter-spacing:-.04em;color:var(--text)}
+.logo-name b{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-tag{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);
+  background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin-left:4px}
 
-function updateBar(pid){
-  const info=getInfo(selV[pid]);
-  const n=pid.slice(-1);
-  document.getElementById('si'+n).textContent=info.i;
-  document.getElementById('sn'+n).textContent=info.l;
-  document.getElementById('st'+n).textContent=info.t+' · '+(info.g==='male'?'Male ♂':'Female ♀');
-}
+/* WRAP */
+.wrap{max-width:700px;margin:0 auto;padding:24px 18px 100px;position:relative;z-index:1}
 
-async function previewVoice(v,pid){
-  const audio=document.getElementById('pvAudio');
-  if(pvPlaying===v){stopPreview();return;}
-  stopPreview();
-  pvPlaying=v;
-  const card=document.getElementById('vc_'+pid+'_'+v);
-  const btn=document.getElementById('pvb_'+pid+'_'+v);
-  if(card)card.classList.add('is-playing');
-  if(btn){btn.className='btn-preview loading';btn.textContent='◌ Loading...';}
-  try{
-    if(!pvCache[v]){
-      const info=getInfo(v);
-      const txt='Hi, I am '+info.l+'. I will be your voice for this project.';
-      const enc=encodeURIComponent(txt.replace(/\s+/g,'_'));
-      const res=await fetch(API+'?text='+enc+'&voice='+v);
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      pvCache[v]=URL.createObjectURL(await res.blob());
-    }
-    audio.src=pvCache[v];
-    await audio.play();
-    if(btn){btn.className='btn-preview playing';btn.textContent='⏹ Stop';}
-  }catch(e){
-    pvPlaying=null;
-    if(card)card.classList.remove('is-playing');
-    if(btn){btn.className='btn-preview idle';btn.textContent='▶ Preview';}
-    alert('Preview ব্যর্থ: '+e.message);
-  }
-}
+/* HERO */
+.hero{text-align:center;padding:32px 0 28px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;
+  background:var(--panel2);border:1px solid var(--border);border-radius:100px;
+  padding:7px 18px;margin-bottom:20px;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent);font-weight:700}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;display:inline-block}
+.hero h1{font-size:clamp(2rem,6vw,3rem);font-weight:900;letter-spacing:-.04em;line-height:1.15;margin-bottom:12px}
+.hero h1 .g1{background:linear-gradient(135deg,#fff 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero h1 .g2{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:16px;color:var(--text2);line-height:1.65;max-width:420px;margin:0 auto}
 
-function stopPreview(){
-  if(!pvPlaying)return;
-  const a=document.getElementById('pvAudio');
-  a.pause();a.src='';
-  document.querySelectorAll('.vcard.is-playing').forEach(c=>c.classList.remove('is-playing'));
-  document.querySelectorAll('.btn-preview.playing,.btn-preview.loading').forEach(b=>{b.className='btn-preview idle';b.textContent='▶ Preview';});
-  pvPlaying=null;
-}
+/* TABS */
+.tabs{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:5px;display:flex;gap:4px;margin-bottom:20px;box-shadow:var(--sh)}
+.tab{flex:1;padding:13px 10px;border-radius:12px;border:none;background:transparent;
+  color:var(--text2);font-size:15px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.tab.on{background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;box-shadow:0 4px 20px #6c63ff44}
 
-function switchTab(t){
-  document.getElementById('page-text').style.display=t==='text'?'block':'none';
-  document.getElementById('page-script').style.display=t==='script'?'block':'none';
-  document.getElementById('tab1').classList.toggle('on',t==='text');
-  document.getElementById('tab2').classList.toggle('on',t==='script');
-}
+/* CARD */
+.card{background:var(--panel);border-radius:20px;border:1px solid var(--border);padding:22px;margin-bottom:16px;box-shadow:var(--sh)}
+.snum{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),#a78bfa);
+  color:#fff;font-size:15px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
+.ctitle{font-size:18px;font-weight:800;margin-bottom:5px;color:var(--text)}
+.csub{font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.6}
 
-function onT1(){
-  const v=document.getElementById('t1').value;
-  const c=v.length,m=Math.round(c/900);
-  const el=document.getElementById('ci1');
-  el.textContent=c.toLocaleString()+' characters · ~'+m+' min';
-  el.className='cinfo'+(c>8000?' warn':'');
-  document.getElementById('gb1').disabled=c<5;
-  document.getElementById('rb1').classList.remove('show');
-  document.getElementById('eb1').classList.remove('show');
-}
+/* SEL BAR */
+.sel-bar{
+  background:linear-gradient(135deg,#1a1d3a,#1e1545);
+  border:1.5px solid #6c63ff55;border-radius:14px;
+  padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;
+  box-shadow:0 0 20px #6c63ff18}
+.sel-bar-icon{font-size:28px;flex-shrink:0}
+.sel-bar-info{flex:1}
+.sel-bar-label{font-size:11px;color:var(--accent);font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.sel-bar-name{font-size:20px;font-weight:900;color:var(--text);letter-spacing:-.02em}
+.sel-bar-tag{font-size:13px;color:var(--text2);margin-top:1px}
+.sel-bar-change{
+  padding:10px 18px;border-radius:10px;
+  border:1.5px solid var(--accent);background:transparent;
+  color:var(--accent);font-size:13px;font-weight:800;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.sel-bar-change:hover{background:var(--accent);color:#fff;box-shadow:0 0 16px #6c63ff66}
 
-async function doPaste(id,cb){
-  try{const t=await navigator.clipboard.readText();document.getElementById(id).value=t;cb();}
-  catch{alert('Clipboard অ্যাক্সেস নেই — manually paste করুন।');}
-}
+/* PICKER */
+.picker{display:none;animation:fadeUp .2s ease}
+.picker.show{display:block}
+.vfilter{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.vf-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);
+  background:transparent;color:var(--text2);font-size:13px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .15s}
+.vf-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 14px #6c63ff44}
 
-function splitChunks(text,size){
-  const chunks=[];let rem=text.trim();
-  while(rem.length>0){
-    if(rem.length<=size){chunks.push(rem);break;}
-    let cut=size;
-    const sl=rem.substring(0,size);
-    const last=Math.max(sl.lastIndexOf('. '),sl.lastIndexOf('! '),sl.lastIndexOf('? '),sl.lastIndexOf('\n'));
-    if(last>size*0.4)cut=last+1;
-    chunks.push(rem.substring(0,cut).trim());
-    rem=rem.substring(cut).trim();
-  }
-  return chunks.filter(c=>c.length>0);
+/* VOICE GRID */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;max-height:420px;overflow-y:auto;padding-right:4px}
+.vcard{
+  background:var(--panel2);border:2px solid var(--border);border-radius:14px;
+  padding:14px 10px 12px;cursor:default;transition:all .2s;text-align:center;position:relative;
 }
+.vcard:hover{border-color:#6c63ff66;background:#1e2040}
+.vcard.selected{border-color:var(--accent);background:linear-gradient(135deg,#1a1d3a,#1e1545);box-shadow:0 0 18px #6c63ff33}
+.vcard.is-playing{border-color:var(--green);background:linear-gradient(135deg,#001a15,#001f1a);box-shadow:0 0 18px #00d4aa33}
+.vcard-check{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:800;
+  display:none;align-items:center;justify-content:center;box-shadow:0 0 8px #6c63ff88}
+.vcard.selected .vcard-check{display:flex}
+.vcard-icon{font-size:26px;margin-bottom:6px;display:block}
+.vcard-name{font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px;letter-spacing:-.01em}
+.vcard-tag{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.3}
+.btn-preview{
+  width:100%;padding:7px 0;border-radius:8px;border:none;
+  font-size:12px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;transition:all .2s;margin-bottom:6px;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-preview.idle{background:var(--accent);color:#fff}
+.btn-preview.idle:hover{background:#5a52e0;box-shadow:0 0 12px #6c63ff66}
+.btn-preview.loading{background:#2a2400;color:var(--orange);cursor:wait}
+.btn-preview.playing{background:#2a0010;color:var(--red)}
+.btn-select{
+  width:100%;padding:7px 0;border-radius:8px;
+  border:1.5px solid var(--border2);background:transparent;
+  color:var(--text2);font-size:12px;font-weight:800;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .2s}
+.btn-select:hover{border-color:var(--green);color:var(--green)}
+.vcard.selected .btn-select{border-color:var(--accent);color:var(--accent)}
 
-async function fetchChunk(text,voice){
-  const enc=encodeURIComponent(text.replace(/\s+/g,'_'));
-  const res=await fetch(API+'?text='+enc+'&voice='+voice);
-  if(!res.ok)throw new Error('HTTP '+res.status);
-  return await res.blob();
-}
+/* TEXTAREA */
+.tarea{
+  width:100%;background:var(--panel2);border:1.5px solid var(--border2);
+  border-radius:14px;padding:16px;color:var(--text);font-size:16px;
+  line-height:1.7;resize:vertical;font-family:'Plus Jakarta Sans',sans-serif;
+  outline:none;transition:border-color .2s;min-height:160px}
+.tarea:focus{border-color:var(--accent);background:#14162e}
+.tarea::placeholder{color:var(--muted)}
+.tfoot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px}
+.cinfo{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace}
+.cinfo.warn{color:var(--orange)}
+.tbtns{display:flex;gap:8px}
+.bsm{
+  padding:7px 16px;border-radius:9px;border:1px solid var(--border2);
+  background:transparent;color:var(--text2);font-size:13px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .15s}
+.bsm:hover{border-color:var(--accent);color:var(--accent)}
 
-async function mergeBlobs(blobs){
-  if(blobs.length===1)return blobs[0];
-  const arrs=await Promise.all(blobs.map(b=>b.arrayBuffer()));
-  const total=arrs.reduce((s,a)=>s+a.byteLength,0);
-  const out=new Uint8Array(total);let off=0;
-  for(const a of arrs){out.set(new Uint8Array(a),off);off+=a.byteLength;}
-  return new Blob([out],{type:'audio/mpeg'});
-}
+/* INFO BOX */
+.ibox{background:#0f1230;border:1px solid #6c63ff33;border-radius:12px;
+  padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.ibox .ic{font-size:18px;flex-shrink:0;margin-top:1px}
+.ibox p{font-size:14px;color:#8890ff;line-height:1.65}
 
-async function genText(){
-  const text=document.getElementById('t1').value.trim();
-  const voice=selV['p1'];
-  if(!text)return;
-  stopPreview();
-  const chunks=splitChunks(text,CHUNK);
-  const btn=document.getElementById('gb1');
-  const pc=document.getElementById('pc1');
-  btn.disabled=true;btn.innerHTML='<span class="spin">◌</span> ভয়েস তৈরি হচ্ছে...';
-  document.getElementById('rb1').classList.remove('show');
-  document.getElementById('eb1').classList.remove('show');
-  if(chunks.length>1){
-    pc.style.display='block';
-    document.getElementById('pf1').style.width='0%';
-    document.getElementById('pv1').textContent='0/'+chunks.length;
-    document.getElementById('ps1').textContent='শুরু হচ্ছে...';
-  }
-  try{
-    const blobs=[];
-    for(let i=0;i<chunks.length;i++){
-      if(chunks.length>1){
-        document.getElementById('ps1').textContent='Part '+(i+1)+' তৈরি হচ্ছে...';
-        document.getElementById('pv1').textContent=i+'/'+chunks.length;
-        document.getElementById('pf1').style.width=(i/chunks.length*100)+'%';
-      }
-      blobs.push(await fetchChunk(chunks[i],voice));
-    }
-    const final=await mergeBlobs(blobs);
-    const url=URL.createObjectURL(final);
-    const info=getInfo(voice);
-    document.getElementById('au1').src=url;
-    document.getElementById('dl1').href=url;
-    document.getElementById('dl1').download='voiceforge_'+voice+'.mp3';
-    document.getElementById('rm1').textContent='ভয়েস: '+info.l+' · '+chunks.length+' part · ~'+Math.round(text.length/900)+' min';
-    document.getElementById('rb1').classList.add('show');
-    if(chunks.length>1){document.getElementById('pf1').style.width='100%';document.getElementById('pv1').textContent=chunks.length+'/'+chunks.length;document.getElementById('ps1').textContent='✅ সম্পন্ন!';}
-  }catch(e){
-    document.getElementById('em1').textContent='সমস্যা হয়েছে: '+e.message+' — আবার চেষ্টা করুন।';
-    document.getElementById('eb1').classList.add('show');
-    pc.style.display='none';
-  }finally{btn.disabled=false;btn.innerHTML='🎙 ভয়েস তৈরি করুন';}
-}
+/* PROGRESS */
+.prog-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px;display:none;box-shadow:var(--sh)}
+.prog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.prog-label{font-size:15px;font-weight:700;color:var(--text)}
+.prog-val{font-size:14px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:700}
+.pbar{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:5px;transition:width .4s ease;width:0%}
+.pstatus{font-size:13px;color:var(--text2);margin-top:10px;font-family:'DM Mono',monospace}
 
-let scriptText='';
-function onDrop(e){e.preventDefault();document.getElementById('uz').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
-function readFile(file){
-  if(!file)return;
-  document.getElementById('fn').textContent=file.name;
-  document.getElementById('fz').textContent=(file.size/1024/1024).toFixed(2)+' MB';
-  document.getElementById('fp').classList.add('show');
-  const r=new FileReader();
-  r.onload=e=>{
-    let raw=e.target.result;
-    raw=raw.replace(/^window\.\w+\s*=\s*/,'').replace(/;?\s*$/,'');
-    try{const j=JSON.parse(raw);raw=extractJSON(j);}catch{}
-    scriptText=raw.trim();
-    document.getElementById('sp').textContent=scriptText.substring(0,500)+(scriptText.length>500?'\n...':'');
-    document.getElementById('sp').classList.add('show');
-    document.getElementById('sc').textContent=scriptText.length.toLocaleString();
-    document.getElementById('sm').textContent=Math.round(scriptText.length/900);
-    document.getElementById('sk').textContent=splitChunks(scriptText,CHUNK).length;
-    document.getElementById('ss').classList.add('show');
-    document.getElementById('gb2').disabled=scriptText.length<5;
-  };
-  r.readAsText(file);
-}
-function extractJSON(d){
-  if(!Array.isArray(d))return JSON.stringify(d,null,2);
-  return d.map(x=>{if(x.tweet?.full_text)return x.tweet.full_text;if(x.like?.fullText)return x.like.fullText;if(typeof x==='string')return x;return '';}).filter(Boolean).join('\n\n');
-}
-function clearFile(){
-  scriptText='';document.getElementById('sf').value='';
-  ['fp','sp','ss'].forEach(id=>document.getElementById(id).classList.remove('show'));
-  document.getElementById('pl').classList.remove('show');
-  document.getElementById('rb2').classList.remove('show');
-  document.getElementById('eb2').classList.remove('show');
-  document.getElementById('pc2').style.display='none';
-  document.getElementById('gb2').disabled=true;
-}
+/* MAIN BTN */
+.btnmain{
+  width:100%;padding:18px;border-radius:15px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:17px;font-weight:900;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:10px;
+  letter-spacing:-.01em;box-shadow:0 6px 28px #6c63ff44}
+.btnmain:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 36px #6c63ff66}
+.btnmain:disabled{background:var(--panel2);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none;border:1px solid var(--border)}
+.spin{animation:spin 1s linear infinite;display:inline-block}
 
-async function genScript(){
-  if(!scriptText)return;
-  const voice=selV['p2'];
-  const chunks=splitChunks(scriptText,CHUNK);
-  const btn=document.getElementById('gb2');
-  const pc=document.getElementById('pc2');
-  const pl=document.getElementById('pl');
-  stopPreview();
-  btn.disabled=true;btn.innerHTML='<span class="spin">◌</span> রূপান্তর হচ্ছে...';
-  pc.style.display='block';
-  document.getElementById('pf2').style.width='0%';
-  document.getElementById('pv2').textContent='0/'+chunks.length;
-  document.getElementById('eb2').classList.remove('show');
-  document.getElementById('rb2').classList.remove('show');
-  pl.innerHTML=chunks.map((_,i)=>`<div class="prow" id="pr${i}"><div class="pnum">${i+1}</div><div class="pinfo"><div class="plabel">Part ${i+1}</div><div class="pchars">${chunks[i].length} chars</div></div><div class="pst loading" id="pt${i}"><span class="spin">◌</span> অপেক্ষা</div><a id="pd${i}" class="pdl" download="part_${i+1}.mp3">↓ Part ${i+1}</a></div>`).join('');
-  pl.classList.add('show');
-  try{
-    const blobs=[];
-    for(let i=0;i<chunks.length;i++){
-      document.getElementById('ps2').textContent='Part '+(i+1)+'/'+chunks.length+' তৈরি হচ্ছে...';
-      document.getElementById('pv2').textContent=i+'/'+chunks.length;
-      document.getElementById('pf2').style.width=(i/chunks.length*100)+'%';
-      document.getElementById('pt'+i).innerHTML='<span class="spin">◌</span> তৈরি হচ্ছে...';
-      try{
-        const blob=await fetchChunk(chunks[i],voice);blobs.push(blob);
-        const url=URL.createObjectURL(blob);
-        const dl=document.getElementById('pd'+i);dl.href=url;dl.download='part_'+(i+1)+'_'+voice+'.mp3';dl.classList.add('show');
-        document.getElementById('pt'+i).innerHTML='✅ সম্পন্ন';document.getElementById('pt'+i).className='pst done';
-      }catch{document.getElementById('pt'+i).innerHTML='❌ ব্যর্থ';document.getElementById('pt'+i).className='pst error';}
-    }
-    const good=blobs.filter(b=>b.size>0);
-    if(!good.length)throw new Error('কোনো part সফল হয়নি');
-    const final=await mergeBlobs(good);
-    const url=URL.createObjectURL(final);
-    const info=getInfo(voice);
-    document.getElementById('au2').src=url;
-    document.getElementById('dl2').href=url;
-    document.getElementById('dl2').download='voiceforge_script_'+voice+'.mp3';
-    document.getElementById('rm2').textContent='ভয়েস: '+info.l+' · '+good.length+'/'+chunks.length+' parts · ~'+Math.round(scriptText.length/900)+' min';
-    document.getElementById('rb2').classList.add('show');
-    document.getElementById('pf2').style.width='100%';
-    document.getElementById('pv2').textContent=chunks.length+'/'+chunks.length;
-    document.getElementById('ps2').textContent='✅ সম্পন্ন! '+good.length+'টি part merge হয়েছে।';
-  }catch(e){
-    document.getElementById('em2').textContent='সমস্যা: '+e.message;
-    document.getElementById('eb2').classList.add('show');
-  }finally{btn.disabled=false;btn.innerHTML='🎙 স্ক্রিপ্ট ভয়েসে রূপান্তর করুন';}
+/* RESULT */
+.rbox{background:linear-gradient(135deg,#001f1a,#001510);border:1.5px solid var(--green-b);border-radius:18px;padding:20px;margin-top:16px;display:none;animation:fadeUp .3s ease}
+.rbox.show{display:block}
+.rtop{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.ric{width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,var(--green),#00a882);
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+  box-shadow:0 0 20px #00d4aa44}
+.rtitle{font-size:17px;font-weight:800;color:var(--green);margin-bottom:3px}
+.rmeta{font-size:13px;color:var(--text2)}
+audio{width:100%;border-radius:10px;margin-bottom:12px;accent-color:var(--accent)}
+.btndl{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:14px;border-radius:12px;border:1.5px solid var(--green);
+  background:transparent;color:var(--green);font-size:15px;font-weight:800;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;text-decoration:none;transition:all .2s}
+.btndl:hover{background:var(--green);color:#000;box-shadow:0 0 20px #00d4aa44}
+
+/* ERROR */
+.ebox{background:var(--red-l);border:1px solid #ff4d6d44;border-radius:12px;padding:14px 16px;margin-top:14px;font-size:14px;color:var(--red);display:none}
+.ebox.show{display:flex;gap:10px;align-items:flex-start}
+
+/* UPLOAD */
+.uzone{border:2px dashed var(--border2);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .25s;background:var(--panel2)}
+.uzone:hover,.uzone.drag{border-color:var(--accent);background:#14162e}
+.uzone input{display:none}
+.uzone-icon{font-size:40px;margin-bottom:12px;display:block}
+.uzone-title{font-size:17px;font-weight:800;margin-bottom:6px;color:var(--text)}
+.uzone-sub{font-size:14px;color:var(--text2)}
+.fprev{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:none;align-items:center;gap:12px;margin-top:14px}
+.fprev.show{display:flex}
+.ficon{font-size:26px;flex-shrink:0}
+.fname{font-size:15px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.fsize{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0}
+.fclr{padding:6px 12px;border-radius:8px;border:1px solid #ff4d6d44;background:transparent;color:var(--red);font-size:13px;cursor:pointer;flex-shrink:0;font-weight:700}
+.spreview{background:var(--panel2);border:1.5px solid var(--border2);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;color:var(--text2);line-height:1.6;max-height:150px;overflow-y:auto;display:none;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word}
+.spreview.show{display:block}
+.sstats{display:none;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sstats.show{display:flex}
+.spill{padding:6px 14px;border-radius:20px;background:var(--panel2);border:1px solid var(--border);font-size:13px;color:var(--text2);font-family:'DM Mono',monospace;font-weight:600}
+.spill strong{color:var(--accent)}
+
+/* PARTS */
+.plist{display:none;flex-direction:column;gap:8px;margin-top:16px}
+.plist.show{display:flex}
+.prow{background:var(--panel2);border:1px solid var(--border);border-radius:13px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.pnum{width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),#a78bfa);
+  color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pinfo{flex:1}
+.plabel{font-size:14px;font-weight:700;color:var(--text)}
+.pchars{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.pst{font-size:13px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:600}
+.pst.loading{color:var(--orange)}.pst.done{color:var(--green)}.pst.error{color:var(--red)}
+.pdl{padding:7px 14px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-weight:700;text-decoration:none;display:none;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.pdl:hover{border-color:var(--green);color:var(--green)}
+.pdl.show{display:block}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--panel2);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+@media(max-width:500px){
+  .tb{padding:0 14px}.wrap{padding:16px 14px 100px}
+  .tab{font-size:13px;padding:11px 6px}
+  .vgrid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+  .hero h1{font-size:1.8rem}
 }
-</script>
-</body>
-</html>
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="tb">
+  <div class="logo">
+    <div class="logo-icon">🎙</div>
+    <div class="logo-name">Voice<b>Forge</b></div>
+    <span class="logo-tag">v2.0</span>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-badge"><span class="badge-dot"></span>Free · Unlimited · No API Key</div>
+    <h1><span class="g1">Text to</span> <span class="g2">Voice Studio</span></h1>
+    <p>৫৪টি ভয়েস শুনে পছন্দ করুন — তারপর যেকোনো টেক্সট সেই ভয়েসে তৈরি করুন</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tab1" onclick="switchTab('text')">✏️ Text to Voice</button>
+    <button class="tab" id="tab2" onclick="switchTab('script')">📄 Script to Voice</button>
+  </div>
+
+  <!-- TEXT PAGE -->
+  <div id="page-text">
+    <div class="card">
+      <div class="snum">01</div>
+      <div class="ctitle">ভয়েস বেছে নিন</div>
+      <div class="csub">▶ Preview চাপুন — "Hi, I am [name]" শুনুন। পছন্দের টায় Select চাপুন।</div>
+      <div class="sel-bar" id="sb1">
+        <span class="sel-bar-icon" id="si1">🎙</span>
+        <div class="sel-bar-info">
+          <div class="sel-bar-label">✓ Selected Voice</div>
+          <div class="sel-bar-name" id="sn1">Liam</div>
+          <div class="sel-bar-tag" id="st1">Deep &amp; Clear · Male ♂</div>
+        </div>
+        <button class="sel-bar-change" onclick="togglePicker('p1')">বদলান ↓</button>
+      </div>
+      <div class="picker" id="p1">
+        <div class="vfilter">
+          <button class="vf-btn on" onclick="filterVoices('p1','all',this)">🌐 All (54)</button>
+          <button class="vf-btn" onclick="filterVoices('p1','male',this)">♂ Male</button>
+          <button class="vf-btn" onclick="filterVoices('p1','female',this)">♀ Female</button>
+        </div>
+        <div class="vgrid" id="vg1"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="snum">02</div>
+      <div class="ctitle">টেক্সট লিখুন বা পেস্ট করুন</div>
+      <div class="csub">ছোট বা বড় যেকোনো টেক্সট — ৫ থেকে ১০ মিনিটের ভয়েসও হবে</div>
+      <div class="ibox"><span class="ic">💡</span><p><strong style="color:#a5b4fc">লম্বা টেক্সট সাপোর্ট:</strong> বড় টেক্সট স্বয়ংক্রিয়ভাবে ছোট অংশে ভাগ হয়ে একটি সম্পূর্ণ অডিওতে মিশে যাবে।</p></div>
+      <textarea class="tarea" id="t1" placeholder="এখানে টেক্সট লিখুন বা paste করুন..." oninput="onT1()"></textarea>
+      <div class="tfoot">
+        <span class="cinfo" id="ci1">0 characters · ~0 min</span>
+        <div class="tbtns">
+          <button class="bsm" onclick="document.getElementById('t1').value='';onT1()">Clear</button>
+          <button class="bsm" onclick="doPaste('t1',onT1)">📋 Paste</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="prog-card" id="pc1">
+      <div class="prog-head"><span class="prog-label">ভয়েস তৈরি হচ্ছে...</span><span class="prog-val" id="pv1">0/0</span></div>
+      <div class="pbar"><div class="pfill" id="pf1"></div></div>
+      <div class="pstatus" id="ps1"></div>
+    </div>
+
+    <button class="btnmain" id="gb1" onclick="genText()" disabled>🎙 ভয়েস তৈরি করুন</button>
+    <div class="ebox" id="eb1"><span>⚠️</span><span id="em1"></span></div>
+    <div class="rbox" id="rb1">
+      <div class="rtop"><div class="ric">✅</div><div><div class="rtitle">ভয়েস তৈরি সম্পন্ন!</div><div class="rmeta" id="rm1"></div></div></div>
+      <audio id="au1" controls></audio>
+      <a id="dl1" class="btndl" download>⬇️ ডাউনলোড করুন (MP3)</a>
+    </div>
+  </div>
+
+  <!-- SCRIPT PAGE -->
+  <div id="page-script" style="display:none">
+    <div class="card">
+      <div class="snum">01</div>
+      <div class="ctitle">ভয়েস বেছে নিন</div>
+      <div class="csub">▶ Preview চাপুন — শুনে পছন্দের টা বেছে নিন</div>
+      <div class="sel-bar" id="sb2">
+        <span class="sel-bar-icon" id="si2">🎙</span>
+        <div class="sel-bar-info">
+          <div class="sel-bar-label">✓ Selected Voice</div>
+          <div class="sel-bar-name" id="sn2">Liam</div>
+          <div class="sel-bar-tag" id="st2">Deep &amp; Clear · Male ♂</div>
+        </div>
+        <button class="sel-bar-change" onclick="togglePicker('p2')">বদলান ↓</button>
+      </div>
+      <div class="picker" id="p2">
+        <div class="vfilter">
+          <button class="vf-btn on" onclick="filterVoices('p2','all',this)">🌐 All (54)</button>
+          <button class="vf-btn" onclick="filterVoices('p2','male',this)">♂ Male</button>
+          <button class="vf-btn" onclick="filterVoices('p2','female',this)">♀ Female</button>
+        </div>
+        <div class="vgrid" id="vg2"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div cl
